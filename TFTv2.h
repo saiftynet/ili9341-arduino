@@ -1,35 +1,11 @@
 /*
- 2012 Copyright (c) Seeed Technology Inc.
-
- Authors: Albert.Miao & Loovee, 
- Visweswara R (with initializtion code from TFT vendor)
-
- This library is free software; you can redistribute it and/or
- modify it under the terms of the GNU Lesser General Public
- License as published by the Free Software Foundation; either
- version 2.1 of the License, or (at your option) any later version.
-
- This library is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public
- License along with this library; if not, write to the Free Software
- Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
+ Adapted from gmtii/ili9341-arduino to be specific to NanoBench
 */
 #ifndef TFTv2_h
 #define TFTv2_h
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#define SEEEDUINO
 #include <Arduino.h>
-#else
-#include <WProgram.h>
-#endif
 #include <avr/pgmspace.h>
-
 #include <SPI.h>
 
 //Basic Colors
@@ -52,47 +28,25 @@
 #define MAX_X	239
 #define MAX_Y	319
 
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+/* for my system the nano with pins mapped as below 
+D8  (pb0)  B0000001 = 0x01: TFT_DC   was d6 (pd6) B01000000 = 0x40
+D10 (pb2)  B0000100 = 0x04: TFT_CS   was d5 (pd5) B00100000 = 0x20
+D9  (pb1)  B0000010 = 0x02: TFT_RST  was d4 (pd4) B00010000 = 0x10
 
-#define TFT_CS_LOW  {DDRE |= 0x08;PORTE &=~ 0x08;}
-#define TFT_CS_HIGH {DDRE |= 0x08;PORTE |=  0x08;}
-#define TFT_DC_LOW  {DDRH |= 0x08;PORTH &=~ 0x08;}
-#define TFT_DC_HIGH {DDRH |= 0x08;PORTH |=  0x08;}
-#define TFT_BL_OFF  {DDRH |= 0x10;PORTH &=~ 0x10;}
-#define TFT_BL_ON   {DDRH |= 0x10;PORTH |=  0x10;}
-#define TFT_RST_OFF {DDRD |= 0x10;PORTD |=  0x10;}
-#define TFT_RST_ON  {DDRD |= 0x10;PORTD &=~ 0x10;}
+--                        : LED      was d7 (pd7) B01000000 = 0x80
+D11 : MOSI
+D12 : MISO
+D13 : SCK
+*/
 
-#define YP A2   // must be an analog pin, use "An" notation!
-#define XM A1   // must be an analog pin, use "An" notation!
-#define YM 54   // can be a digital pin, this is A0
-#define XP 57   // can be a digital pin, this is A3
-
-#elif defined(__AVR_ATmega32U4__)
-
-#define TFT_CS_LOW  {DDRC |= 0x40;PORTC &=~ 0x40;}
-#define TFT_CS_HIGH {DDRC |= 0x40;PORTC |=  0x40;}
-#define TFT_DC_LOW  {DDRD |= 0x80;PORTD &=~ 0x80;}
-#define TFT_DC_HIGH {DDRD |= 0x80;PORTD |=  0x80;}
-#define TFT_BL_OFF  {DDRE |= 0x40;PORTE &=~ 0x40;}
-#define TFT_BL_ON   {DDRE |= 0x40;PORTE |=  0x40;}
-#define TFT_RST_OFF {DDRD |= 0x10;PORTD |=  0x10;}
-#define TFT_RST_ON  {DDRD |= 0x10;PORTD &=~ 0x10;}
-
-#define YP A2   // must be an analog pin, use "An" notation!
-#define XM A1   // must be an analog pin, use "An" notation!
-#define YM 18   // can be a digital pin, this is A0
-#define XP 21   // can be a digital pin, this is A3
-
-#else
-#define TFT_CS_LOW  {DDRD |= 0x20;PORTD &=~ 0x20;}
-#define TFT_CS_HIGH {DDRD |= 0x20;PORTD |=  0x20;}
-#define TFT_DC_LOW  {DDRD |= 0x40;PORTD &=~ 0x40;}
-#define TFT_DC_HIGH {DDRD |= 0x40;PORTD |=  0x40;}
-#define TFT_BL_OFF  {DDRD |= 0x80;PORTD &=~ 0x80;}
-#define TFT_BL_ON   {DDRD |= 0x80;PORTD |=  0x80;}
-#define TFT_RST_OFF {DDRD |= 0x10;PORTD |=  0x10;}
-#define TFT_RST_ON  {DDRD |= 0x10;PORTD &=~ 0x10;}
+#define TFT_CS_LOW  {DDRB |= 0x04;PORTB &=~ 0x04;}
+#define TFT_CS_HIGH {DDRB |= 0x04;PORTB |=  0x04;}
+#define TFT_DC_LOW  {DDRB |= 0x01;PORTB &=~ 0x01;}
+#define TFT_DC_HIGH {DDRB |= 0x01;PORTB |=  0x01;}
+#define TFT_BL_OFF  {}
+#define TFT_BL_ON   {}
+#define TFT_RST_OFF {DDRB |= 0x02;PORTB |=  0x02;}
+#define TFT_RST_ON  {DDRB |= 0x02;PORTB &=~ 0x02;}
 
 
 #define YP A2   // must be an analog pin, use "An" notation!
@@ -100,7 +54,6 @@
 #define YM 14   // can be a digital pin, this is A0
 #define XP 17   // can be a digital pin, this is A3
 
-#endif
 
 #define TS_MINX 116*2
 #define TS_MAXX 890*2
@@ -145,7 +98,7 @@ public:
 	void drawCircle(int poX, int poY, int r,INT16U color);
 	void fillCircle(int poX, int poY, int r,INT16U color);
 
-	void drawTraingle(int poX1, int poY1, int poX2, int poY2, int poX3, int poY3, INT16U color);
+	void drawTriangle(int poX1, int poY1, int poX2, int poY2, int poX3, int poY3, INT16U color);
 	INT8U drawNumber(long long_num,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor);
 	INT8U drawFloat(float floatNumber,INT8U decimal,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor);
 	INT8U drawFloat(float floatNumber,INT16U poX, INT16U poY,INT16U size,INT16U fgcolor);
